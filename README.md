@@ -1,34 +1,27 @@
-<a href="https://github.com/camaraproject/§repo_name§/commits/" title="Last Commit"><img src="https://img.shields.io/github/last-commit/camaraproject/§repo_name§?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§/issues" title="Open Issues"><img src="https://img.shields.io/github/issues/camaraproject/§repo_name§?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§/pulls" title="Open Pull Requests"><img src="https://img.shields.io/github/issues-pr/camaraproject/§repo_name§?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§/graphs/contributors" title="Contributors"><img src="https://img.shields.io/github/contributors/camaraproject/§repo_name§?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§" title="Repo Size"><img src="https://img.shields.io/github/repo-size/camaraproject/§repo_name§?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§/blob/main/LICENSE" title="License"><img src="https://img.shields.io/badge/License-Apache%202.0-green.svg?style=plastic"></a>
-<a href="https://github.com/camaraproject/§repo_name§/releases/latest" title="Latest Release"><img src="https://img.shields.io/github/release/camaraproject/§repo_name§?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/commits/" title="Last Commit"><img src="https://img.shields.io/github/last-commit/camaraproject/Marketing?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/issues" title="Open Issues"><img src="https://img.shields.io/github/issues/camaraproject/Marketing?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/pulls" title="Open Pull Requests"><img src="https://img.shields.io/github/issues-pr/camaraproject/Marketing?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/graphs/contributors" title="Contributors"><img src="https://img.shields.io/github/contributors/camaraproject/Marketing?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing" title="Repo Size"><img src="https://img.shields.io/github/repo-size/camaraproject/Marketing?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/blob/main/LICENSE" title="License"><img src="https://img.shields.io/badge/License-Apache%202.0-green.svg?style=plastic"></a>
+<a href="https://github.com/camaraproject/Marketing/releases/latest" title="Latest Release"><img src="https://img.shields.io/github/release/camaraproject/Marketing?style=plastic"></a>
 
-# §repo_name§
-Repository to describe, develop, document, and test the §repo_name§ API family
+# Marketing
+Repository for the CAMARA Marketing Working Group
 
 ## Scope
-* Service APIs for “§repo_name§” (see APIBacklog.md)  
-* It provides the customer with the ability to:  
-  * §API family description§.
-  * NOTE: The scope of this API family should be limited (at least at the first stage) to 4G and 5G.  
-* Describe, develop, document, and test the APIs (with 1-2 Telcos)  
-* Started: §start date§
+* Plan and perform marketing activities for CAMARA
+* Maintain marketing material (onepager, presentation, website, GitHub, ...)
+* Started: November 2021  
 
 ## Release Information
-<!-- Use/uncomment one or multiple the following options -->
-<!-- The sub project has no (pre)releases yet, work in progress is within the main branch -->
-<!-- Pre-releases of this sub project are available in https://github.com/camaraproject/§repo_name§/releases -->
-<!-- The latest public release is available here: https://github.com/camaraproject/§repo_name§/releases/latest -->
-<!-- For changes see [CHANGELOG.md](https://github.com/camaraproject/§repo_name§/blob/main/CHANGELOG.md) -->
+The Working Group has no (pre)releases yet, work in progress is within the main branch
 
 ## Contributing
 * Meetings
-    * [Registration](https://wiki.camaraproject.org/x/TQAG) Update this link with your meeting join link
-    * Schedule: 
-    * Minutes: Access [meeting minutes] (update this link to your wiki page using the "Share" link).
+    * [Link](https://zoom-lfx.platform.linuxfoundation.org/meeting/98623615151?password=f925c48e-22d6-4f22-aba1-593fe4539f4e)
+    * Schedule: every 3rd Tuesday in a month at 3pm CET / 4pm CEST
+    * Minutes: Access [meeting minutes](https://wiki.camaraproject.org/display/CAM/Outreach+Committee+Minutes)
 * Mailing List
-    * Subscribe / Unsubscribe to the mailing list of this Sub Project <https://lists.camaraproject.org/g/sp-§api_family_abbreviation§>.
-    * A message to the community of this Sub Project can be sent using <sp-§api_family_abbreviation§@lists.camaraproject.org>.
+    * Subscribe / Unsubscribe to the mailing list of this Sub Project <[https://lists.camaraproject.org/g/wg-mkt](https://lists.camaraproject.org/g/wg-mkt)>.
+    * A message to the community of this Sub Project can be sent using <wg-mkt@lists.camaraproject.org>.

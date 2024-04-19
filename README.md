@@ -5,6 +5,7 @@
 <a href="https://github.com/camaraproject/Marketing" title="Repo Size"><img src="https://img.shields.io/github/repo-size/camaraproject/Marketing?style=plastic"></a>
 <a href="https://github.com/camaraproject/Marketing/blob/main/LICENSE" title="License"><img src="https://img.shields.io/badge/License-Apache%202.0-green.svg?style=plastic"></a>
 <a href="https://github.com/camaraproject/Marketing/releases/latest" title="Latest Release"><img src="https://img.shields.io/github/release/camaraproject/Marketing?style=plastic"></a>
+<img src="https://img.shields.io/badge/Working%20Group-red">
 
 # Marketing
 Repository for the CAMARA Marketing Working Group

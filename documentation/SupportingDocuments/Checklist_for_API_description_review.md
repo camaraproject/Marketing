@@ -4,7 +4,7 @@
 | **Section** | **Checkpoints** |
 |---|---|
 | API Description | <ul><li>API targets and functionality is described complete and understandable</li><li>Visual illustrating API functionality and integration is included</li></ul> |
-| Use Cases | <ul><li>Use Cases are described understandable</li><li>Use case name in bold, rest in normal font</li></ul> |
+| Use Cases | <ul><li>Use cases are described understandable</li><li>Use case name in bold, rest in normal font</li></ul> |
 | Benefits | <ul><li>Benefits are described understandable</li><li>Benefit name in bold, rest in normal font</li></ul> |
 | API Portfolio: | <ul><li>Prefix correct (see column section)</li><li>Correct portfolio is shown</li></ul> |
 | SubProject Wiki: | <ul><li>Prefix correct (see column section)</li><li>Link is correct and named with SubProject or Independent Sandbox</li><li>"(incl. how to meet the team)" is added</li></ul> |

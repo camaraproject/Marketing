@@ -1,6 +1,6 @@
 # Process for creating, updating and deleting API descriptions at the CAMARA website
 
-## Process for content creation:
+## Step1: Content creation within CAMARA wiki and trigger to Marketing Working Group
 Actor: Sub Project or Independent Sandbox team
 
 - New API (name)
@@ -16,16 +16,16 @@ Actor: Sub Project or Independent Sandbox team
   - Trigger: Change request (by anybody, anywhere)
     - Action: Forward change request to Actor with reminder to check/update API description
     - Action: Actor creates issue in Marketing repo with updates to API description (referencing updated Wiki page)
-- Delete API
-  - Trigger: TSC archives API repository
+- Change of maturity stage of an API Repository: Sandbox -> Incubating -> Graduated (or -> Archived)
+  - Trigger: TSC decides about an API Repository transition
     - Action: TSC creates issue in Marketing repo
 
-## Process for website update:
+## Step 2: Update of web site by Marketing Working Group
 Actor: Marketing team
 
 - Website update
   - Trigger: Actor gets issue informing of API description update
-  - Trigger: Actor performs cross-check with meta-release API list
+  - Trigger: Actor performs cross-check with meta-release API list and meta-data on API repository wiki page
     - Action: Actor updates API description / release information at website using updated information received
     - Action: Actor asks Sub Project / Independent Sandbox, API Backlog Working Group and OGW Product Workstream to review website content
     - Action: Actor includes review feedback (at website and Wiki page)

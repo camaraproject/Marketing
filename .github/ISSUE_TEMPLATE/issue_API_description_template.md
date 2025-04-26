@@ -8,10 +8,25 @@ assignees: ''
 ---
 
 **Requested change**
-* Change of API description: <!-- Y/N  -->
-* Link to wiki page where the updated API description can be retrieved: <!-- Wiki link  -->
-* Change of API version: <!-- Y/N  -->
-* Link to change log where the updated API version can be retrieved: <!-- change log link  -->
+
+For which APIs need the description on the website be changed?
+
+* ...
+* ...
+
+If API description texts or illustrations have been changed, please provide here the link(s) to the wiki page(s) where the updated API description can be retrieved: 
+
+* ...
+* ...
+
+If there was a new public release with new API versions, please provide here the link to the release (rX.Y):
+
+* ...
+
+Any other changes to the meta-data of the API(s) (e.g. new sub project, new maturity stage, ...):
+
+* ...
+
 
 **Additional context**
 <!-- Add any other context or change request (e.g. TSC repo status transition)  -->

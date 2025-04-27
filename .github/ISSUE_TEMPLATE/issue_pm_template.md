@@ -1,8 +1,8 @@
 ---
-name: ☁ Governance management 🎂
-about: Indicate an issue with the project management of CAMARA
+name: ☁ Repository management 🎂
+about: Indicate an issue with repository or release management
 title: ''
-labels: 'project management'
+labels: 'repository management'
 assignees: ''
 
 ---

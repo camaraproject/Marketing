@@ -1,6 +1,6 @@
 ---
 name: 💡 Enhancement 🌟
-about: Suggest an idea for a new API feature or pose a question on directions for API evolution
+about: Suggest an idea for a new way of working or pose a question on governance evolution
 title: ''
 labels: 'enhancement'
 assignees: ''

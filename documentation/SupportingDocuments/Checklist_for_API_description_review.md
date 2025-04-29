@@ -7,7 +7,7 @@
 | Use Cases | <ul><li>Use cases are described understandable</li><li>Use case name in bold, rest in normal font</li></ul> |
 | Benefits | <ul><li>Benefits are described understandable</li><li>Benefit name in bold, rest in normal font</li></ul> |
 | API Portfolio: | <ul><li>Prefix correct (see column section)</li><li>Correct portfolio is shown</li></ul> |
-| SubProject Wiki: | <ul><li>Prefix correct (see column section)</li><li>Link is correct and named with SubProject or Independent Sandbox</li><li>"(incl. how to meet the team)" is added</li></ul> |
+| Sub Project Wiki: | <ul><li>Prefix correct (see column section)</li><li>Link is correct and named with Sub Project or Independent Sandbox</li><li>"(incl. how to meet the team)" is added</li></ul> |
 | API Wiki: | <ul><li>Prefix correct (see column section)</li><li>Link is correct and named with API</li></ul> |
 | API Repository: | <ul><li>Prefix correct (see column section)</li><li>Link is correct and named with API</li></ul> |
 | API Repository Status: | <ul><li>Prefix correct (see column section)</li><li>Status is correct (Sandbox, Incubating, Graduated)</li></ul> |

@@ -1,0 +1,1373 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>World Telecom Operators Map (Static, Red Countries)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Leaflet core -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Marker Cluster -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.css"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster/dist/MarkerCluster.Default.css"/>
+  <script src="https://unpkg.com/leaflet.markercluster/dist/leaflet.markercluster.js"></script>
+
+  <!-- Leaflet Search plugin (for CSV data search) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-search/dist/leaflet-search.min.css" />
+  <script src="https://unpkg.com/leaflet-control-search/dist/leaflet-search.min.js"></script>
+
+  <!-- Leaflet Geocoder plugin (for map-wide country search) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+  <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+
+  <style>
+    html, body { height:100%; margin:0; font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+    #map {
+      height: 100%;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    .ui {
+      position: absolute; z-index: 1000; left: 12px; top: 12px;
+      display: grid; gap: 8px; width: min(380px, 92vw);
+      transition: width .2s ease;
+    }
+    .ui.collapsed { width: 0; }
+    .ui.collapsed .panel, .ui.collapsed .title-card { display: none; }
+
+    .collapse-toggle {
+      position: absolute;
+      left: 100%;
+      top: 10px;
+      transform: translateX(8px);
+      width: 36px; height: 36px;
+      border-radius: 999px;
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+      border: 1px solid #dbe2ea;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.12), 0 1px 0 rgba(255,255,255,0.9) inset;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .2s ease, box-shadow .2s ease, transform .15s ease;
+      backdrop-filter: saturate(140%) blur(4px);
+    }
+    .collapse-toggle:hover {
+      background: linear-gradient(180deg, #ffffff 0%, #eef2f7 100%);
+      box-shadow: 0 6px 14px rgba(0,0,0,0.16), 0 1px 0 rgba(255,255,255,0.9) inset;
+    }
+    .collapse-toggle:active { transform: translateX(8px) scale(0.97); }
+    .collapse-toggle:focus-visible { outline: none; box-shadow: 0 0 0 3px rgba(99,102,241,0.35); }
+    .collapse-toggle .toggle-icon { width: 18px; height: 18px; fill: #334155; transition: transform .2s ease, fill .2s ease; }
+    .collapse-toggle:hover .toggle-icon { fill: #0f172a; }
+    /* Flip chevron when collapsed to indicate action */
+    .ui.collapsed .collapse-toggle .toggle-icon { transform: rotate(180deg); }
+    .panel {
+      background:#fff;
+      border-radius:12px;
+      padding:8px 10px;
+      box-shadow:0 2px 8px rgba(0,0,0,.1);
+      display:flex;
+      align-items:center;
+      gap:10px;
+      flex-wrap:wrap;
+      border: 1px solid #e1e8ed;
+    }
+    .title-card {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 1px solid rgba(0,0,0,.08);
+      border-radius:12px;
+      padding:8px 12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.06);
+      font-weight:600;
+      font-size:14px;
+      line-height:1.2;
+      color:#ffffff;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .legend { display:flex; align-items:center; gap:10px; font-size: 13px; }
+    .dot {
+      width:12px;
+      height:12px;
+      border-radius:50%;
+      display:inline-block;
+      border:1px solid #00000020;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    }
+    .count { opacity:.7; }
+  .leaflet-tooltip { font-size: 12px; font-weight: 600; }
+
+    /* Remove blue hover boundary around clusters */
+    .marker-cluster:hover {
+      background: none !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Enhanced Leaflet control styling */
+    .leaflet-control-container .leaflet-control {
+      border-radius: 6px !important;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1) !important;
+    }
+
+    .leaflet-control-container .leaflet-control a {
+      border-radius: 4px !important;
+    }
+
+    /* Enhanced popup styling */
+    .leaflet-popup-content-wrapper {
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .leaflet-popup-tip {
+      background-color: white;
+    }
+  </style>
+</head>
+<body>
+  <div class="ui">
+    <button id="togglePanel" class="collapse-toggle" title="Collapse panel" aria-label="Collapse panel" aria-expanded="true">
+      <svg class="toggle-icon" viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M15.41 7.41 14 6l-6 6 6 6 1.41-1.41L10.83 12z"/>
+      </svg>
+    </button>
+    <div class="title-card">CAMARA API Deployment Status by Country</div>
+    <div class="panel">
+      <label><input type="checkbox" id="apiOnly"> Show only countries with CAMARA API operators</label>
+      <select id="apiFilter" style="margin-left:8px; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1;">
+        <option value="__all__">All APIs</option>
+      </select>
+      <select id="continentFilter" style="margin-left:8px; padding:4px 6px; border-radius:6px; border:1px solid #cbd5e1;">
+        <option value="__all__">All continents</option>
+      </select>
+      
+      
+      <span class="legend">
+        <span class="dot" style="background:#d62728"></span> All operators deploy CAMARA APIs
+        <span class="dot" style="background:#ff9999"></span> Some operators deploy CAMARA APIs
+        <span class="dot" style="background:#1f77b4"></span> No operators deploy CAMARA APIs
+      </span>
+      <span class="legend" style="margin-left:10px;">
+        <span title="Cluster composition" style="display:inline-block;width:16px;height:16px;border-radius:50%;vertical-align:middle;border:1px solid #e5e7eb;
+               background: conic-gradient(#d62728 0 120deg, #ff9999 120deg 240deg, #1f77b4 240deg 360deg);"></span>
+        Cluster composition: red=all, light red=some, blue=none
+      </span>
+      <span id="count" class="count"></span>
+    </div>
+  </div>
+  <div id="map"></div>
+
+  <!-- Embedded CSV dataset -->
+  <!-- Same data as the no-upload version -->
+  <script id="embeddedCSV" type="text/csv" style="display:none">country,continent,latitude,longitude,operator,APIs,CAMARA Yes/No
+Afghanistan,Asia,33.92417,67.688525,Afghan Wireless (AWCC),,No
+Afghanistan,Asia,33.92417,67.688525,Etisalat Afghanistan,,No
+Afghanistan,Asia,33.92417,67.688525,MTN Afghanistan,,No
+Afghanistan,Asia,33.92417,67.688525,Roshan,,No
+Afghanistan,Asia,33.92417,67.688525,Salaam Network,,No
+Albania,Europe,41.150732,20.155859,ONE Telecommunications (vodafone Albania),,No
+Albania,Europe,41.150732,20.155859,Plus Communication,,No
+Albania,Europe,41.150732,20.155859,Telekom Albania (formerly ALBtelecom),,No
+Algeria,Africa,28.039502,1.642261,Djezzy,,No
+Algeria,Africa,28.039502,1.642261,Mobilis,,No
+Algeria,Africa,28.039502,1.642261,Ooredoo Group,SIM Swap,Yes
+Andorra,Europe,42.538599,1.577539,Andorra Telecom (formerly STA),,No
+Angola,Africa,-11.224316,17.894873,Africell Angola,,No
+Angola,Africa,-11.224316,17.894873,Movicel,,No
+Angola,Africa,-11.224316,17.894873,Unitel,,No
+Antigua and Barbuda,North America,17.083057,-61.786572,,,No
+Argentina,South America,-38.4161,-63.6167,Claro,"Device Location Retrieval, Device Location Verification, Device Roaming Status, SIM Swap",Yes
+Argentina,South America,-38.4161,-63.6167,Telecom Argentina,"Device Location Retrieval, Device Location Verification, Device Status, Number Verification, SIM Swap",Yes
+Argentina,South America,-38.4161,-63.6167,Telefónica,SIM Swap,Yes
+Armenia,Asia,40.080005,45.012109,Beeline Armenia,,No
+Armenia,Asia,40.080005,45.012109,MTS Armenia,,No
+Armenia,Asia,40.080005,45.012109,Ucom,,No
+Australia,Oceania,-24.598633,133.262549,Optus (Singtel),,No
+Australia,Oceania,-24.598633,133.262549,Telstra,Simple Edge Discovery,Yes
+Australia,Oceania,-24.598633,133.262549,Vodafone Australia (TPG Telecom),,No
+Austria,Europe,47.700415,13.335693,A1 Telekom Austria (formerly Mobilkom Austria),,No
+Austria,Europe,47.700415,13.335693,Drei Austria,"Call Forwarding Signal, Device Identifier, Device Reachability Status, Device Roaming Status, Device Swap, KnowYourCustomer, SIM Swap",Yes
+Austria,Europe,47.700415,13.335693,Magenta Telekom (formerly T-Mobile Austria),,No
+Azerbaijan,Asia,40.144849,47.56709,Azercell,,No
+Azerbaijan,Asia,40.144849,47.56709,Bakcell,,No
+Azerbaijan,Asia,40.144849,47.56709,Nar Mobile (formerly Azerfon),,No
+Bahamas,North America,23.938745,-75.866455,,,No
+Bahrain,Asia,26.026611,50.534961,Batelco,,No
+Bahrain,Asia,26.026611,50.534961,VIVA Bahrain (STC),,No
+Bahrain,Asia,26.026611,50.534961,Zain Bahrain,,No
+Bangladesh,Asia,23.680981,90.327539,Banglalink,,No
+Bangladesh,Asia,23.680981,90.327539,Grameenphone (Telenor),,No
+Bangladesh,Asia,23.680981,90.327539,Robi Axiata,,No
+Bangladesh,Asia,23.680981,90.327539,Teletalk,,No
+Barbados,North America,13.189941,-59.537158,Digicel Barbados,,No
+Barbados,North America,13.189941,-59.537158,Flow Barbados (Cable & Wireless),,No
+Belarus,Europe,53.70542,27.942676,A1 Belarus (formerly velcom),,No
+Belarus,Europe,53.70542,27.942676,MTS Belarus,,No
+Belarus,Europe,53.70542,27.942676,life:) (formerly BeST),,No
+Belgium,Europe,50.5039,4.4699,DIGI Belgium,,No
+Belgium,Europe,50.5039,4.4699,Orange Belgium (formerly Mobistar),,No
+Belgium,Europe,50.5039,4.4699,Proximus (formerly Belgacom),,No
+Belgium,Europe,50.5039,4.4699,Telenet/BASE,,No
+Belize,North America,17.185498,-88.513062,Belize Telemedia (BTL),,No
+Belize,North America,17.185498,-88.513062,SMART Belize,,No
+Benin,Africa,9.3077,2.3158,Glo Benin,,No
+Benin,Africa,9.3077,2.3158,MTN,SIM Swap,Yes
+Benin,Africa,9.3077,2.3158,Moov Africa (Orange),,No
+Bhutan,Asia,27.506372,90.411084,Bhutan Telecom,,No
+Bhutan,Asia,27.506372,90.411084,TashiCell,,No
+Bolivia,South America,-16.301074,-63.570679,Entel Bolivia,,No
+Bolivia,South America,-16.301074,-63.570679,Tigo Bolivia (Millicom),,No
+Bolivia,South America,-16.301074,-63.570679,Viva Bolivia,,No
+Bosnia and Herzegovina,Europe,44.1733,17.7866,BH Telecom,,No
+Bosnia and Herzegovina,Europe,44.1733,17.7866,HT Eronet,,No
+Bosnia and Herzegovina,Europe,44.1733,17.7866,m:tel,,No
+Botswana,Africa,-22.320898,24.671094,BTC Mobile,,No
+Botswana,Africa,-22.320898,24.671094,Mascom Wireless,,No
+Botswana,Africa,-22.320898,24.671094,Orange Botswana,,No
+Brazil,South America,-14.2350,-51.9253,Claro (America Movil),"Device Location Verification, Number Verification, SIM Swap",Yes
+Brazil,South America,-14.2350,-51.9253,Oi,,No
+Brazil,South America,-14.2350,-51.9253,TIM,"Device Location Verification, KnowYourCustomer, Number Verification, SIM Swap",Yes
+Brazil,South America,-14.2350,-51.9253,Vivo,"Device Location Verification, Device Status, Home Devices Quality on Demand, KnowYourCustomer, Number Verification, OTP Validation, Quality on Demand, SIM Swap",Yes
+Brunei,Asia,4.523169,114.695312,DST Communications,,No
+Brunei,Asia,4.523169,114.695312,Progresif Cellular,,No
+Bulgaria,Europe,42.740674,25.464697,A1 Bulgaria (formerly Mtel/Mobiltel),,No
+Bulgaria,Europe,42.740674,25.464697,Telenor Bulgaria (formerly Globul),,No
+Bulgaria,Europe,42.740674,25.464697,Vivacom (formerly Vivatel),,No
+Burkina Faso,Africa,12.2383,-1.5616,Orange Burkina Faso,,No
+Burkina Faso,Africa,12.2383,-1.5616,Telecel Faso,,No
+Burkina Faso,Africa,12.2383,-1.5616,Telmob,,No
+Burundi,Africa,-3.384424,29.912793,Econet Leo Burundi,,No
+Burundi,Africa,-3.384424,29.912793,Lumitel (Viettel),,No
+Burundi,Africa,-3.384424,29.912793,Smart Mobile,,No
+Cambodia,Asia,12.558154,104.962598,Cellcard (MobiTel),Number Verification,Yes
+Cambodia,Asia,12.558154,104.962598,MetFone (Viettel),Number Verification,Yes
+Cambodia,Asia,12.558154,104.962598,Smart (Axiata),Number Verification,Yes
+Cameroon,Africa,5.7034,12.7400,Camtel Mobile,,No
+Cameroon,Africa,5.7034,12.7400,MTN,SIM Swap,Yes
+Cameroon,Africa,5.7034,12.7400,Nexttel,,No
+Cameroon,Africa,5.7034,12.7400,Orange Cameroon,,No
+Canada,North America,62.0,-96.0,Bell (BCE),"Number Verification, SIM Swap",Yes
+Canada,North America,62.0,-96.0,Freedom Mobile,,No
+Canada,North America,62.0,-96.0,Rogers,"Number Verification, SIM Swap",Yes
+Canada,North America,62.395483,-96.827905,Telus,"Number Verification, SIM Swap",Yes
+Cape Verde,Africa,16.005933,-24.011719,CV Telecom,,No
+Cape Verde,Africa,16.005933,-24.011719,CVMóvel (Unitel T+),,No
+Central African Republic,Africa,6.633154,20.917236,Orange Central African Republic,,No
+Central African Republic,Africa,6.633154,20.917236,Telecel CAR,,No
+Chad,Africa,15.4542,18.7322,Airtel Chad,,No
+Chad,Africa,15.4542,18.7322,Tigo Chad,,No
+Chile,South America,-37.0,-71.0,Claro,"Device Status, SIM Swap",Yes
+Chile,South America,-37.0,-71.0,Entel,"Number Verification, SIM Swap",Yes
+Chile,South America,-37.0,-71.0,Telefónica,SIM Swap,Yes
+Chile,South America,-37.0,-71.0,WOM Chile,,No
+China,Asia,35.0,103.0,China Broadcasting Network (CBN),,No
+China,Asia,35.0,103.0,China Mobile,"Number Verification, OTP Validation",Yes
+China,Asia,35.0,103.0,China Telecom,"Device Location Retrieval, Device Location Verification, Device Status, Number Verification, OTP Validation, Quality on Demand, SIM Swap",Yes
+China,Asia,35.0,103.0,China Unicom,"Device Location Retrieval, Device Location Verification, Device Status, OTP Validation, Quality on Demand, SIM Swap",Yes
+Colombia,South America,4.5709,-74.2973,Claro Colombia (América Móvil),,No
+Colombia,South America,4.5709,-74.2973,ETB,,No
+Colombia,South America,4.5709,-74.2973,Movistar Colombia (Telefónica),,No
+Colombia,South America,4.5709,-74.2973,Tigo Colombia (Millicom),,No
+Comoros,Africa,-11.868359,43.876709,Comores Telecom,,No
+Congo,Africa,-0.658496,14.876172,,,No
+Costa Rica,North America,9.630054,-84.235791,Claro Costa Rica,,No
+Costa Rica,North America,9.630054,-84.235791,Kölbi (ICE),,No
+Costa Rica,North America,9.630054,-84.235791,Movistar Costa Rica,,No
+Croatia,Europe,44.483765,16.459082,A1 Hrvatska (formerly VIPnet),,No
+Croatia,Europe,44.483765,16.459082,Hrvatski Telekom (T-Mobile Croatia),,No
+Croatia,Europe,44.483765,16.459082,Tele2 Croatia,,No
+Cuba,North America,21.522949,-79.512012,ETECSA (Cubacel),,No
+Cyprus,Europe,34.876123,33.175586,Cyta (Cyprus Telecommunications Authority),,No
+Cyprus,Europe,34.876123,33.175586,Epic (formerly MTN Cyprus),,No
+Cyprus,Europe,34.876123,33.175586,PrimeTel,,No
+Czech Republic,Europe,49.807007,15.460986,O2 Czech Republic,,No
+Czech Republic,Europe,49.807007,15.460986,T-Mobile Czech Republic,,No
+Czech Republic,Europe,49.807007,15.460986,Vodafone Czech Republic,,No
+Democratic Republic of Congo,Africa,-4.07085,21.743848,Africell DRC,,No
+Democratic Republic of Congo,Africa,-4.07085,21.743848,Airtel DRC,,No
+Democratic Republic of Congo,Africa,-4.07085,21.743848,Orange DRC,,No
+Democratic Republic of Congo,Africa,-4.07085,21.743848,Vodacom DRC,,No
+Denmark,Europe,56.182886,10.393604,3 (Three) Denmark,,No
+Denmark,Europe,56.182886,10.393604,TDC Group,,No
+Denmark,Europe,56.182886,10.393604,Telenor Denmark,,No
+Denmark,Europe,56.182886,10.393604,Telia Denmark (rebranding to Norlys Mobil),,No
+Denmark,Europe,56.182886,10.393604,Tre Denmark,"Call Forwarding Signal, Device Reachability Status, Device Roaming Status",Yes
+Djibouti,Africa,11.824805,42.587207,Djibouti Telecom,,No
+Dominica,North America,15.4302,-61.366113,,,No
+Dominican Republic,North America,18.7357,-70.1627,Claro Dominicana,,No
+Dominican Republic,North America,18.7357,-70.1627,Orange Dominicana (Altice),,No
+Dominican Republic,North America,18.7357,-70.1627,Viva Dominicana,,No
+Ecuador,South America,-1.421,-78.75,CNT Mobile,,No
+Ecuador,South America,-1.421,-78.75,Claro Ecuador,,No
+Ecuador,South America,-1.421,-78.75,Movistar Ecuador,,No
+Egypt,Africa,26.824927,30.787305,Orange Egypt,,No
+Egypt,Africa,26.824927,30.787305,Vodafone Egypt,,No
+Egypt,Africa,26.824927,30.787305,WE (Telecom Egypt),,No
+Egypt,Africa,26.824927,30.787305,e& Group,Device Status,Yes
+El Salvador,North America,13.797559,-88.91062,Claro El Salvador,,No
+El Salvador,North America,13.797559,-88.91062,Movistar El Salvador,,No
+El Salvador,North America,13.797559,-88.91062,Tigo El Salvador,,No
+Equatorial Guinea,Africa,1.6508,10.2679,Getesa,,No
+Equatorial Guinea,Africa,1.6508,10.2679,Orange Guinea Ecuatorial,,No
+Eritrea,Africa,15.19082,39.771729,EriTel,,No
+Estonia,Europe,58.582251,25.002783,Elisa Estonia,,No
+Estonia,Europe,58.582251,25.002783,Tele2 Estonia,,No
+Estonia,Europe,58.582251,25.002783,Telia Estonia (formerly EMT),,No
+Eswatini,Africa,-26.526465,31.450195,,,No
+Ethiopia,Africa,9.154199,40.488574,Ethio Telecom,,No
+Ethiopia,Africa,9.154199,40.488574,Safaricom Ethiopia,,No
+Fiji,Oceania,-18.398291,-179.125562,Digicel Fiji,,No
+Fiji,Oceania,-18.398291,-179.125562,Vodafone Fiji,,No
+Finland,Europe,64.94043,26.079346,DNA Finland,,No
+Finland,Europe,64.94043,26.079346,Elisa,,No
+Finland,Europe,64.94043,26.079346,Telenor,Number Verification,Yes
+Finland,Europe,64.94043,26.079346,Telia Finland,,No
+France,Europe,46.2276,2.2137,Bouygues Telecom,SIM Swap,Yes
+France,Europe,46.2276,2.2137,Free-iliad Group,"KnowYourCustomer, SIM Swap",Yes
+France,Europe,46.2276,2.2137,Orange,"Number Verification, SIM Swap",Yes
+France,Europe,46.2276,2.2137,Orange France,,No
+France,Europe,46.2276,2.2137,SFR (Altice Europe),SIM Swap,Yes
+Gabon,Africa,-0.8037,11.6094,Airtel Gabon,,No
+Gabon,Africa,-0.8037,11.6094,Moov Africa Gabon,,No
+Gambia,Africa,13.438135,-15.325757,Africell Gambia,,No
+Gambia,Africa,13.438135,-15.325757,Gamcel,,No
+Georgia,Asia,42.3154,43.3569,Cellfie (formerly Mobitel Georgia),,No
+Georgia,Asia,42.3154,43.3569,Magticom,,No
+Georgia,Asia,42.3154,43.3569,Silknet (formerly Geocell),,No
+Germany,Europe,51.1657,10.4515,1&1 Drillisch,,No
+Germany,Europe,51.168774,10.437061,Deutsche Telekom,"Device Location Verification, Device Status, Number Verification, Quality on Demand, SIM Swap",Yes
+Germany,Europe,51.168774,10.437061,Telefónica,"Device Location Verification, Device Status, KnowYourCustomer, Number Verification, SIM Swap",Yes
+Germany,Europe,51.168774,10.437061,Vodafone,"Device Location Verification, Device Status, Number Verification, SIM Swap",Yes
+Germany,Europe,51.168774,10.437061,Vodafone Germany,,No
+Ghana,Africa,7.964673,-1.028345,AirtelTigo Ghana,,No
+Ghana,Africa,7.964673,-1.028345,MTN,"Number Verification, SIM Swap",Yes
+Ghana,Africa,7.964673,-1.028345,Vodafone Ghana (Telecel Ghana),,No
+Greece,Europe,38.339136,22.53916,Cosmote (OTE Group),,No
+Greece,Europe,38.339136,22.53916,Vodafone,"Number Verification, SIM Swap",Yes
+Greece,Europe,38.339136,22.53916,Wind Hellas,,No
+Grenada,North America,12.122729,-61.694604,Digicel Grenada,,No
+Grenada,North America,12.122729,-61.694604,Flow Grenada,,No
+Guatemala,North America,15.776465,-90.231738,Claro Guatemala,,No
+Guatemala,North America,15.776465,-90.231738,Movistar Guatemala,,No
+Guatemala,North America,15.776465,-90.231738,Tigo Guatemala,,No
+Guinea,Africa,9.944922,-11.366211,Cellcom Guinea,,No
+Guinea,Africa,9.944922,-11.366211,MTN Guinea,,No
+Guinea,Africa,9.944922,-11.366211,Orange Guinea,,No
+Guinea-Bissau,Africa,11.810034,-15.192676,MTN Guinea-Bissau,,No
+Guinea-Bissau,Africa,11.810034,-15.192676,Orange Guinea-Bissau,,No
+Guyana,South America,4.875269,-58.936816,Digicel Guyana,,No
+Guyana,South America,4.875269,-58.936816,GTT Mobile,,No
+Haiti,North America,18.9712,-72.2852,Digicel Haiti,,No
+Haiti,North America,18.9712,-72.2852,Natcom,,No
+Honduras,North America,14.746606,-86.260059,Claro Honduras,,No
+Honduras,North America,14.746606,-86.260059,Tigo Honduras,,No
+Hungary,Europe,47.153247,19.484863,Magyar Telekom (T-Mobile Hungary),,No
+Hungary,Europe,47.153247,19.484863,Vodafone Hungary,,No
+Hungary,Europe,47.153247,19.484863,Yettel Hungary (formerly Telenor Hungary),,No
+Iceland,Europe,64.966382,-19.015894,Nova,,No
+Iceland,Europe,64.966382,-19.015894,Síminn,,No
+Iceland,Europe,64.966382,-19.015894,Vodafone Iceland,,No
+India,Asia,22.0,79.0,Airtel,"Device Location Verification, Device Roaming Status, Device Swap, OTP Validation, SIM Swap",Yes
+India,Asia,22.0,79.0,BSNL,,No
+India,Asia,22.0,79.0,Reliance Jio,SIM Swap,Yes
+India,Asia,22.0,79.0,Vi (Vodafone Idea),,No
+Indonesia,Asia,-2.501318,118.091406,Indosat Ooredoo Hutchison,"Device Location Verification, Number Verification, SIM Swap",Yes
+Indonesia,Asia,-2.501318,118.091406,Smartfren,"Device Location Verification, Number Verification, SIM Swap",Yes
+Indonesia,Asia,-2.501318,118.091406,Telkomsel,"Device Location Verification, Number Verification, SIM Swap",Yes
+Indonesia,Asia,-2.501318,118.091406,Tri Indonesia,"Call Forwarding Signal, SIM Swap",Yes
+Indonesia,Asia,-2.501318,118.091406,XL Axiata,"Device Location Verification, Number Verification, SIM Swap",Yes
+Iran,Asia,32.435327,53.664209,Hamrah-e Avval (MCI),,No
+Iran,Asia,32.435327,53.664209,IranCell,,No
+Iran,Asia,32.435327,53.664209,RighTel,,No
+Iraq,Asia,33.217773,43.66001,Asiacell,,No
+Iraq,Asia,33.217773,43.66001,Korek Telecom,,No
+Iraq,Asia,33.217773,43.66001,Zain Iraq,,No
+Ireland,Europe,53.419775,-8.208813,Eir Mobile,,No
+Ireland,Europe,53.419775,-8.208813,Three Ireland,"Call Forwarding Signal, Device Identifier, Device Reachability Status, Device Roaming Status, Device Swap, KnowYourCustomer, SIM Swap",Yes
+Ireland,Europe,53.419775,-8.208813,Vodafone Ireland,,No
+Israel,Asia,31.454541,35.079395,Cellcom,,No
+Israel,Asia,31.454541,35.079395,Golan Telecom,,No
+Israel,Asia,31.454541,35.079395,Hot Mobile,,No
+Israel,Asia,31.454541,35.079395,Partner Communications (Orange),,No
+Israel,Asia,31.454541,35.079395,Pelephone,,No
+Italy,Europe,42.5,12.5,Iliad Italia,,No
+Italy,Europe,42.5,12.5,TIM,"Device Location Verification, Number Verification, OTP Validation, SIM Swap",Yes
+Italy,Europe,42.5,12.5,Vodafone Italy (acquired by Swisscom/Fastweb),,No
+Italy,Europe,42.5,12.5,Wind3,"Call Forwarding Signal, Device Identifier, Device Reachability Status, Device Roaming Status, Device Swap, KnowYourCustomer, SIM Swap",Yes
+Ivory Coast,Africa,7.54,-5.55,,,No
+Jamaica,North America,18.118579,-77.275146,Digicel Jamaica,,No
+Jamaica,North America,18.118579,-77.275146,Flow Jamaica,,No
+Japan,Asia,36.2048,138.2529,KDDI,KnowYourCustomer,Yes
+Japan,Asia,36.2048,138.2529,NTT Docomo,,No
+Japan,Asia,36.2048,138.2529,Rakuten Mobile,,No
+Japan,Asia,36.2048,138.2529,SoftBank,,No
+Jordan,Asia,31.281348,37.121777,Orange Jordan,,No
+Jordan,Asia,31.281348,37.121777,Umniah,,No
+Jordan,Asia,31.281348,37.121777,Zain Jordan,,No
+Kazakhstan,Asia,47.999121,66.966016,Beeline Kazakhstan (VEON),,No
+Kazakhstan,Asia,47.999121,66.966016,Kcell (Telia),,No
+Kazakhstan,Asia,47.999121,66.966016,Tele2 Kazakhstan,,No
+Kenya,Africa,0.0236,37.9062,Airtel Kenya,,No
+Kenya,Africa,0.0236,37.9062,Safaricom,,No
+Kenya,Africa,0.0236,37.9062,Telkom Kenya (T-Kash),,No
+Kiribati,Oceania,-3.76665,-163.161719,,,No
+Kuwait,Asia,29.315234,47.486963,Ooredoo Kuwait,,No
+Kuwait,Asia,29.315234,47.486963,VIVA Kuwait (STC),,No
+Kuwait,Asia,29.315234,47.486963,Zain Kuwait,,No
+Kyrgyzstan,Asia,41.22395,74.737646,Beeline Kyrgyzstan,,No
+Kyrgyzstan,Asia,41.22395,74.737646,MegaCom,,No
+Kyrgyzstan,Asia,41.22395,74.737646,O! (Kyrgyztelecom),,No
+Laos,Asia,18.208228,103.884033,Beeline Laos,,No
+Laos,Asia,18.208228,103.884033,ETL Mobile,,No
+Laos,Asia,18.208228,103.884033,Lao Telecom (Unitel),,No
+Laos,Asia,18.208228,103.884033,Tplus,,No
+Latvia,Europe,56.865479,24.608496,Bite Latvia,,No
+Latvia,Europe,56.865479,24.608496,LMT (Latvian Mobile Telephone),,No
+Latvia,Europe,56.865479,24.608496,Tele2 Latvia,,No
+Lebanon,Asia,33.877197,35.846777,Alfa (Orascom),,No
+Lebanon,Asia,33.877197,35.846777,touch (Zain),,No
+Lesotho,Africa,-29.612012,28.22124,Econet Telecom Lesotho,,No
+Lesotho,Africa,-29.612012,28.22124,Vodacom Lesotho,,No
+Liberia,Africa,6.444507,-9.453711,Libercell,,No
+Liberia,Africa,6.444507,-9.453711,Lonestar Cell MTN,,No
+Liberia,Africa,6.444507,-9.453711,Orange Liberia,,No
+Libya,Africa,26.339282,17.230371,Al Madar,,No
+Libya,Africa,26.339282,17.230371,Libyana,,No
+Liechtenstein,Europe,47.164062,9.54502,Mobilkom Liechtenstein (A1),,No
+Liechtenstein,Europe,47.164062,9.54502,Salt Liechtenstein,,No
+Liechtenstein,Europe,47.164062,9.54502,Swisscom Liechtenstein,,No
+Lithuania,Europe,55.152075,23.837744,Bite Lithuania,,No
+Lithuania,Europe,55.152075,23.837744,Tele2 Lithuania,,No
+Lithuania,Europe,55.152075,23.837744,Telia Lithuania,,No
+Luxembourg,Europe,49.806323,6.109375,Orange Luxembourg,,No
+Luxembourg,Europe,49.806323,6.109375,POST Luxembourg,,No
+Luxembourg,Europe,49.806323,6.109375,Tango,,No
+Madagascar,Africa,-18.825049,46.869922,Airtel Madagascar,,No
+Madagascar,Africa,-18.825049,46.869922,Orange Madagascar,,No
+Madagascar,Africa,-18.825049,46.869922,Telma Mobile,,No
+Malawi,Africa,-13.263037,34.281592,Airtel,OTP Validation,Yes
+Malawi,Africa,-13.263037,34.281592,TNM (Telekom Networks Malawi),,No
+Malaysia,Asia,4.106812,109.456299,CelcomDigi (merger of Celcom & Digi),,No
+Malaysia,Asia,4.106812,109.456299,Maxis,,No
+Malaysia,Asia,4.106812,109.456299,TM (unifi Mobile),,No
+Malaysia,Asia,4.106812,109.456299,U Mobile,"Number Verification, SIM Swap",Yes
+Maldives,Asia,3.738525,73.455176,Dhiraagu,,No
+Maldives,Asia,3.738525,73.455176,Ooredoo Maldives,,No
+Mali,Africa,17.569434,-4.022974,Malitel,,No
+Mali,Africa,17.569434,-4.022974,Orange Mali,,No
+Malta,Europe,35.947998,14.373291,GO Mobile,,No
+Malta,Europe,35.947998,14.373291,Melita Mobile,,No
+Malta,Europe,35.947998,14.373291,Vodafone Malta,,No
+Marshall Islands,Oceania,8.484229,169.300781,NTA (National Telecommunications Authority),,No
+Mauritania,Africa,21.015649,-10.943286,Mattel,,No
+Mauritania,Africa,21.015649,-10.943286,Mauritel Mobiles,,No
+Mauritania,Africa,21.015649,-10.943286,Orange Mauritania,,No
+Mauritius,Africa,-20.251563,57.554834,Emtel,,No
+Mauritius,Africa,-20.251563,57.554834,MTML (My.T),,No
+Mauritius,Africa,-20.251563,57.554834,Orange Mauritius,,No
+Mexico,North America,23.6345,-102.5528,AT&T,"Device Location Verification, Number Verification, SIM Swap",Yes
+Mexico,North America,23.6345,-102.5528,Movistar Mexico,,No
+Mexico,North America,23.6345,-102.5528,Telcel,"Device Location Verification, Number Verification, SIM Swap",Yes
+Mexico,North America,23.6345,-102.5528,Telefónica,"Device Location Verification, Number Verification, SIM Swap",Yes
+Micronesia,Oceania,7.435278,150.527686,FSM Telecommunications,,No
+Moldova,Europe,46.964087,28.375,Moldcell,,No
+Moldova,Europe,46.964087,28.375,Orange Moldova,,No
+Monaco,Europe,43.751318,7.408203,Monaco Telecom,,No
+Mongolia,Asia,46.856396,103.820508,G-Mobile,,No
+Mongolia,Asia,46.856396,103.820508,Mobicom,,No
+Mongolia,Asia,46.856396,103.820508,Skytel,,No
+Mongolia,Asia,46.856396,103.820508,Unitel Mongolia,,No
+Montenegro,Europe,42.705713,19.391992,T-Mobile Montenegro,,No
+Montenegro,Europe,42.705713,19.391992,Telenor Montenegro,,No
+Montenegro,Europe,42.705713,19.391992,m:tel Montenegro,,No
+Morocco,Africa,28.675293,-9.034302,Inwi,,No
+Morocco,Africa,28.675293,-9.034302,Maroc Telecom (Inwi),,No
+Morocco,Africa,28.675293,-9.034302,Orange Morocco (Méditel),,No
+Mozambique,Africa,-18.662988,35.533154,Vodacom Mozambique,,No
+Mozambique,Africa,-18.662988,35.533154,mCel,,No
+Myanmar,Asia,19.196216,96.663428,MPT (Myanmar Posts and Telecommunications),,No
+Myanmar,Asia,19.196216,96.663428,Mytel,,No
+Myanmar,Asia,19.196216,96.663428,Ooredoo Myanmar,,No
+Myanmar,Asia,19.196216,96.663428,Telenor Myanmar,,No
+Namibia,Africa,-22.953223,18.490234,MTC Namibia,,No
+Namibia,Africa,-22.953223,18.490234,Telecom Namibia Mobile,,No
+Nauru,Oceania,-0.520068,166.932715,Digicel Nauru,,No
+Nepal,Asia,28.373901,84.106592,Ncell (Axiata),,No
+Nepal,Asia,28.373901,84.106592,Nepal Telecom (NTC),,No
+Netherlands,Europe,52.1326,5.2913,KPN,"KnowYourCustomer, Number Verification, SIM Swap",Yes
+Netherlands,Europe,52.1326,5.2913,ODIDO,"KnowYourCustomer, Number Verification, SIM Swap",Yes
+Netherlands,Europe,52.1326,5.2913,Odido (formerly Tele2/T-Mobile merger),,No
+Netherlands,Europe,52.1326,5.2913,T-Mobile Netherlands,,No
+Netherlands,Europe,52.1326,5.2913,Vodafone,"KnowYourCustomer, Number Verification, SIM Swap",Yes
+New Zealand,Oceania,-41.0,174.0,2degrees,,No
+New Zealand,Oceania,-41.0,174.0,One NZ (formerly Vodafone NZ),,No
+New Zealand,Oceania,-41.0,174.0,Spark New Zealand,,No
+Nicaragua,North America,12.871704,-85.413843,Claro Nicaragua,,No
+Nicaragua,North America,12.871704,-85.413843,Movistar Nicaragua,,No
+Niger,Africa,17.60708,8.063525,Airtel Niger,,No
+Niger,Africa,17.60708,8.063525,Orange Niger,,No
+Nigeria,Africa,9.075122,8.656592,9mobile (formerly Etisalat),,No
+Nigeria,Africa,9.075122,8.656592,Airtel,OTP Validation,Yes
+Nigeria,Africa,9.075122,8.656592,Glo Mobile,,No
+Nigeria,Africa,9.075122,8.656592,MTN,"Number Verification, SIM Swap",Yes
+North Korea,Asia,40.358594,127.517969,Koryolink,,No
+North Macedonia,Europe,41.988695,21.421909,A1 Macedonia (formerly VIP),,No
+North Macedonia,Europe,41.988695,21.421909,T-Mobile Macedonia (formerly Makedonski Telekom),,No
+Norway,Europe,64.5732,11.5280,Telenor Norway,,No
+Norway,Europe,64.5732,11.5280,Telia Norway,,No
+Norway,Europe,64.5732,11.5280,ice.net,,No
+Oman,Asia,21.502368,55.907568,Omantel,,No
+Oman,Asia,21.502368,55.907568,Ooredoo Oman,,No
+Pakistan,Asia,30.39502,68.945996,Jazz (Mobilink),,No
+Pakistan,Asia,30.39502,68.945996,PTCL Group,OTP Validation,Yes
+Pakistan,Asia,30.39502,68.945996,Telenor Pakistan,,No
+Pakistan,Asia,30.39502,68.945996,Zong (China Mobile Pakistan),,No
+Palau,Oceania,5.366992,132.897266,PalauCel,,No
+Palestine,Asia,31.76336,35.242214,Jawwal (Paltel),,No
+Palestine,Asia,31.76336,35.242214,Wataniya Palestine,,No
+Panama,North America,8.40896,-80.11167,Claro Panamá,,No
+Panama,North America,8.40896,-80.11167,Digicel Panamá,,No
+Panama,North America,8.40896,-80.11167,Movistar Panamá,,No
+Papua New Guinea,Oceania,-6.314993,143.95555,Digicel PNG,,No
+Papua New Guinea,Oceania,-6.314993,143.95555,bmobile-vodafone,,No
+Paraguay,South America,-23.42002,-58.446387,Claro,"Device Location Retrieval, Device Location Verification, Device Roaming Status, SIM Swap",Yes
+Paraguay,South America,-23.42002,-58.446387,Personal (Telecom Argentina),"Number Verification, SIM Swap",Yes
+Paraguay,South America,-23.42002,-58.446387,Tigo (Millicom),"Number Verification, SIM Swap",Yes
+Peru,South America,-9.1900,-75.0152,Bitel,,No
+Peru,South America,-9.1900,-75.0152,Claro Perú,,No
+Peru,South America,-9.1900,-75.0152,Entel,"Number Verification, SIM Swap",Yes
+Peru,South America,-9.1900,-75.0152,Movistar Perú,,No
+Philippines,Asia,12.950732,121.781445,DITO Telecommunity,,No
+Philippines,Asia,12.950732,121.781445,Globe Telecom,Number Verification,Yes
+Philippines,Asia,12.950732,121.781445,"Smart Communications, Inc.",Number Verification,Yes
+Poland,Europe,51.929468,19.117188,Orange Polska,,No
+Poland,Europe,51.929468,19.117188,Play,,No
+Poland,Europe,51.929468,19.117188,Plus (Polkomtel),,No
+Poland,Europe,51.929468,19.117188,T-Mobile Polska,,No
+Portugal,Europe,39.5,-8.0,MEO (formerly TMN),,No
+Portugal,Europe,39.5,-8.0,NOS,,No
+Portugal,Europe,39.5,-8.0,Vodafone Portugal,,No
+Qatar,Asia,25.35896,51.181738,Ooredoo Group,"OTP Validation, SIM Swap",Yes
+Qatar,Asia,25.35896,51.181738,Vodafone Qatar,,No
+Romania,Europe,45.967139,24.973828,Digi Mobil,,No
+Romania,Europe,45.967139,24.973828,Orange România,,No
+Romania,Europe,45.967139,24.973828,Vodafone România,,No
+Russia,Europe,55.744926,37.619224,Beeline (VimpelCom),,No
+Russia,Europe,55.744926,37.619224,MTS,,No
+Russia,Europe,55.744926,37.619224,MegaFon,,No
+Russia,Europe,55.744926,37.619224,Rostelecom,,No
+Russia,Europe,55.744926,37.619224,Tele2 Russia,,No
+Russia,Europe,55.744926,37.619224,Yota,,No
+Rwanda,Africa,-1.9403,29.8739,Airtel Rwanda,,No
+Rwanda,Africa,-1.9403,29.8739,MTN Rwanda,,No
+Rwanda,Africa,-1.9403,29.8739,Tigo Rwanda,,No
+Saint Kitts and Nevis,North America,17.251587,-62.686353,,,No
+Saint Lucia,North America,13.905469,-60.979956,Digicel Saint Lucia,,No
+Saint Lucia,North America,13.905469,-60.979956,Flow Saint Lucia,,No
+Saint Vincent and the Grenadines,North America,13.026733,-61.23877,,,No
+Samoa,Oceania,-13.75625,-172.114038,Digicel Samoa,,No
+Samoa,Oceania,-13.75625,-172.114038,Vodafone Samoa (Bluesky),,No
+San Marino,Europe,43.941919,12.455762,TIM San Marino,,No
+San Marino,Europe,43.941919,12.455762,Vodafone San Marino,,No
+Sao Tome and Principe,Africa,0.2010,6.7390,,,No
+Saudi Arabia,Asia,24.248145,45.128613,Mobily (Etihad Etisalat),,No
+Saudi Arabia,Asia,24.248145,45.128613,STC,OTP Validation,Yes
+Saudi Arabia,Asia,24.248145,45.128613,Virgin Mobile Saudi Arabia,,No
+Saudi Arabia,Asia,24.248145,45.128613,Zain Saudi Arabia,,No
+Senegal,Africa,14.4974,-14.4524,Expresso Senegal,,No
+Senegal,Africa,14.4974,-14.4524,Free Senegal (Saga),,No
+Senegal,Africa,14.4974,-14.4524,Orange Senegal (Sonatel),,No
+Serbia,Europe,44.0,20.0,A1 Serbia (VIP Mobile),,No
+Serbia,Europe,44.0,20.0,Telekom Srbija (mts),,No
+Serbia,Europe,44.0,20.0,Telenor Serbia,,No
+Seychelles,Africa,-4.672168,55.463184,Airtel Seychelles,,No
+Seychelles,Africa,-4.672168,55.463184,Cable & Wireless Seychelles,,No
+Sierra Leone,Africa,8.451538,-11.787939,Africell Sierra Leone,,No
+Sierra Leone,Africa,8.451538,-11.787939,Orange Sierra Leone,,No
+Sierra Leone,Africa,8.451538,-11.787939,Qcell,,No
+Singapore,Asia,1.356226,103.823291,M1,,No
+Singapore,Asia,1.356226,103.823291,Singtel,Device Location Verification,Yes
+Singapore,Asia,1.356226,103.823291,StarHub,,No
+Singapore,Asia,1.356226,103.823291,TPG Telecom Singapore,,No
+Slovakia,Europe,48.680566,19.700684,4ka,,No
+Slovakia,Europe,48.680566,19.700684,O2 Slovakia,,No
+Slovakia,Europe,48.680566,19.700684,Orange Slovensko,,No
+Slovakia,Europe,48.680566,19.700684,T-Mobile Slovakia,,No
+Slovenia,Europe,46.145825,14.947217,A1 Slovenia,,No
+Slovenia,Europe,46.145825,14.947217,Telekom Slovenije,,No
+Slovenia,Europe,46.145825,14.947217,Telemach,,No
+Solomon Islands,Oceania,-9.220557,161.303369,Our Telekom,,No
+Somalia,Africa,5.144189,46.177344,Golis Telecom,,No
+Somalia,Africa,5.144189,46.177344,Hormuud Telecom,,No
+Somalia,Africa,5.144189,46.177344,Nationlink Telecom,,No
+Somalia,Africa,5.144189,46.177344,Somtel,,No
+South Africa,Africa,-29.0,24.0,Cell C,"Number Verification, SIM Swap",Yes
+South Africa,Africa,-29.0,24.0,MTN,"Number Verification, SIM Swap",Yes
+South Africa,Africa,-29.0,24.0,Rain Mobile,,No
+South Africa,Africa,-29.0,24.0,Telcom,"Number Verification, SIM Swap",Yes
+South Africa,Africa,-29.0,24.0,Vodacom South Africa,,No
+South Korea,Asia,36.459937,127.790186,KT,Simple Edge Discovery,Yes
+South Korea,Asia,36.459937,127.790186,LG Uplus,,No
+South Korea,Asia,36.459937,127.790186,SK Telecom,,No
+South Sudan,Africa,7.856909,29.707861,Gemtel,,No
+South Sudan,Africa,7.856909,29.707861,MTN South Sudan,,No
+South Sudan,Africa,7.856909,29.707861,Zain South Sudan,,No
+Spain,Europe,40.0,-4.0,MásMóvil/Yoigo,,No
+Spain,Europe,40.0,-4.0,Orange,"Device Location Verification, Device Status, Number Verification, SIM Swap",Yes
+Spain,Europe,40.0,-4.0,Telefónica,"Carrier Billing, Device Location Verification, Device Status, Device Swap, Home Devices Quality on Demand, KnowYourCustomer, Number Verification, OTP Validation, Population Density Data, Quality on Demand, SIM Swap",Yes
+Spain,Europe,40.0,-4.0,Telefónica (Movistar),,No
+Spain,Europe,40.0,-4.0,Vodafone,"Device Location Verification, Device Status, Number Verification, SIM Swap",Yes
+Sri Lanka,Asia,7.88103,80.792383,Bharti Airtel,OTP Validation,Yes
+Sri Lanka,Asia,7.88103,80.792383,CK Hutchison,"Carrier Billing, OTP Validation",Yes
+Sri Lanka,Asia,7.88103,80.792383,Dialog (Axiata),"Carrier Billing, Device Location Verification, Number Verification, OTP Validation, SIM Swap",Yes
+Sri Lanka,Asia,7.88103,80.792383,Hutchison Drei Lanka (merged with Dialog Axiata),,No
+Sri Lanka,Asia,7.88103,80.792383,SLT-Mobitel,OTP Validation,Yes
+Sudan,Africa,15.434033,30.217383,MTN Sudan,,No
+Sudan,Africa,15.434033,30.217383,Sudatel,,No
+Sudan,Africa,15.434033,30.217383,Zain Sudan,,No
+Suriname,South America,3.917847,-56.022485,Digicel Suriname,,No
+Suriname,South America,3.917847,-56.022485,Telesur,,No
+Sweden,Europe,62.0,15.0,Comviq,,No
+Sweden,Europe,62.0,15.0,Tele2 Sweden,,No
+Sweden,Europe,62.0,15.0,Telia Sweden,,No
+Sweden,Europe,62.0,15.0,Tre Sweden,"Call Forwarding Signal, Device Reachability Status, Device Roaming Status",Yes
+Switzerland,Europe,46.8182,8.2275,Salt Mobile (formerly Orange Switzerland),,No
+Switzerland,Europe,46.8182,8.2275,Sunrise UPC,,No
+Switzerland,Europe,46.8182,8.2275,Swisscom,,No
+Syria,Asia,34.807275,39.061768,MTN Syria,,No
+Syria,Asia,34.807275,39.061768,Syriatel,,No
+Taiwan,Asia,23.600952,120.108154,Asia Pacific Telecom,,No
+Taiwan,Asia,23.600952,120.108154,Taiwan Star,,No
+Taiwan,Asia,23.600952,120.108154,Chunghwa Telecom,"Device Status, SIM Swap",Yes
+Taiwan,Asia,23.600952,120.108154,Far EasTone,"Device Status, Number Verification, SIM Swap",Yes
+Taiwan,Asia,23.600952,120.108154,Taiwan Mobile,"Number Verification, SIM Swap",Yes
+Tajikistan,Asia,38.85957,71.23418,Babilon-M,,No
+Tajikistan,Asia,38.85957,71.23418,Beeline Tajikistan,,No
+Tajikistan,Asia,38.85957,71.23418,Megafon Tajikistan,,No
+Tajikistan,Asia,38.85957,71.23418,Tcell,,No
+Tanzania,Africa,-6.3690,34.8888,Airtel,OTP Validation,Yes
+Tanzania,Africa,-6.3690,34.8888,Halotel,,No
+Tanzania,Africa,-6.3690,34.8888,Tigo Tanzania,,No
+Tanzania,Africa,-6.3690,34.8888,Vodacom Tanzania,,No
+Thailand,Asia,15.8700,100.9925,AIS,"Device Location Verification, Number Verification, SIM Swap",Yes
+Thailand,Asia,15.8700,100.9925,CAT Telecom,,No
+Thailand,Asia,15.8700,100.9925,True Corporation,,No
+Thailand,Asia,15.8700,100.9925,True DTAC,"Number Verification, SIM Swap",Yes
+Thailand,Asia,15.8700,100.9925,dtac (True Corporation),,No
+Timor-Leste,Asia,-8.8742,125.7275,Telemor,,No
+Timor-Leste,Asia,-8.8742,125.7275,Timor Telecom,,No
+Togo,Africa,8.602515,0.843872,Moov Africa Togo,,No
+Togo,Africa,8.602515,0.843872,Togocel,,No
+Tonga,Oceania,-20.007959,-174.642114,Digicel Tonga,,No
+Trinidad and Tobago,North America,10.6918,-61.2225,Digicel Trinidad and Tobago,,No
+Trinidad and Tobago,North America,10.6918,-61.2225,Flow Trinidad and Tobago,,No
+Tunisia,Africa,33.8869,9.5375,Ooredoo Tunisia,,No
+Tunisia,Africa,33.8869,9.5375,Orange Tunisia (Tunisiana),,No
+Tunisia,Africa,33.8869,9.5375,Tunisie Telecom,,No
+Turkey,Asia,38.962354,35.243066,Turkcell,,No
+Turkey,Asia,38.962354,35.243066,Türk Telekom,,No
+Turkey,Asia,38.962354,35.243066,Türk Telekom (Avea),,No
+Turkey,Asia,38.962354,35.243066,Vodafone Turkey,,No
+Turkmenistan,Asia,38.974634,59.561572,TM Cell (Altyn Asyr),,No
+Tuvalu,Oceania,-9.05,178.35,Tuvalu Telecom,,No
+Uganda,Africa,1.3733,32.2903,Africell Uganda,,No
+Uganda,Africa,1.3733,32.2903,Airtel Uganda,,No
+Uganda,Africa,1.3733,32.2903,MTN,SIM Swap,Yes
+Ukraine,Europe,48.370581,31.130078,Kyivstar,,No
+Ukraine,Europe,48.370581,31.130078,Vodafone Ukraine,,No
+Ukraine,Europe,48.370581,31.130078,lifecell (Turkcell),,No
+United Arab Emirates,Asia,23.344824,53.978174,du,SIM Swap,Yes
+United Arab Emirates,Asia,23.344824,53.978174,e& Group,"Carrier Billing, Device Status, SIM Swap",Yes
+United Kingdom,Europe,54.7024,-3.2766,3 (CK Hutchison),SIM Swap,Yes
+United Kingdom,Europe,54.7024,-3.2766,BT,SIM Swap,Yes
+United Kingdom,Europe,54.7024,-3.2766,EE (BT),SIM Swap,Yes
+United Kingdom,Europe,54.7024,-3.2766,O2 UK (Telefónica/Virgin Media),,No
+United Kingdom,Europe,54.7024,-3.2766,Three UK,"Call Forwarding Signal, Device Identifier, Device Reachability Status, Device Roaming Status, Device Swap, KnowYourCustomer, SIM Swap",Yes
+United Kingdom,Europe,54.7024,-3.2766,Virgin Media O2,SIM Swap,Yes
+United Kingdom,Europe,54.7024,-3.2766,Vodafone,"Number Verification, SIM Swap",Yes
+United Kingdom,Europe,54.7024,-3.2766,Vodafone UK,,No
+United States of America,North America,39.8283,-98.5795,Dish Wireless,,No
+United States of America,North America,39.8283,-98.5795,AT&T,"Device Status, SIM Swap",Yes
+United States of America,North America,39.8283,-98.5795,T-Mobile,"Device Location Verification, Device Status, Quality on Demand",Yes
+United States of America,North America,39.8283,-98.5795,Verizon,Simple Edge Discovery,Yes
+Uruguay,South America,-32.5228,-55.7658,Antel,,No
+Uruguay,South America,-32.5228,-55.7658,Claro,"Device Location Retrieval, Device Location Verification, Device Roaming Status, SIM Swap",Yes
+Uruguay,South America,-32.5228,-55.7658,Claro Uruguay,,No
+Uruguay,South America,-32.5228,-55.7658,Movistar Uruguay,,No
+Uzbekistan,Asia,41.363794,64.556299,Beeline Uzbekistan,,No
+Uzbekistan,Asia,41.363794,64.556299,UMS (UzMobile),,No
+Uzbekistan,Asia,41.363794,64.556299,Ucell,,No
+Vanuatu,Oceania,-16.975635,168.211182,Digicel Vanuatu,,No
+Vanuatu,Oceania,-16.975635,168.211182,Vodafone Vanuatu,,No
+Vatican City,Europe,41.90188,12.43335,,,No
+Venezuela,South America,6.432935,-66.597559,Digitel,,No
+Venezuela,South America,6.432935,-66.597559,Movilnet,,No
+Venezuela,South America,6.432935,-66.597559,Movistar Venezuela,,No
+Vietnam,Asia,15.964233,105.786182,MobiFone,,No
+Vietnam,Asia,15.964233,105.786182,VNPT (VinaPhone),,No
+Vietnam,Asia,15.964233,105.786182,Viettel,,No
+Yemen,Asia,15.5527,48.5164,MTN Yemen,,No
+Yemen,Asia,15.5527,48.5164,Sabafon,,No
+Yemen,Asia,15.5527,48.5164,Y (Yemen Mobile),,No
+Zambia,Africa,-13.1339,27.8493,Airtel Zambia,,No
+Zambia,Africa,-13.1339,27.8493,MTN,SIM Swap,Yes
+Zambia,Africa,-13.1339,27.8493,Zamtel Mobile,,No
+Zimbabwe,Africa,-19.0154,29.1549,Econet Wireless Zimbabwe,,No
+Zimbabwe,Africa,-19.0154,29.1549,NetOne,,No
+Zimbabwe,Africa,-19.0154,29.1549,Telecel Zimbabwe,,No
+</script>
+
+  <script>
+    function nm(v){ return v==null ? "" : String(v).trim(); }
+    function firstOf(obj, keys){
+      for (const k of keys){ if (obj.hasOwnProperty(k) && nm(obj[k])!=="") return obj[k]; }
+      return "";
+    }
+    function hasAPI(val){
+      const s = nm(val).toLowerCase();
+      if (!s) return false;
+      if (s.includes("no camara apis currently announced") || s.includes("no apis currently announced")) return false;
+      return true;
+    }
+
+    function normalizeRow(row){
+      const lat  = firstOf(row, ["latitude","Latitude","lat","Lat"]);
+      const lon  = firstOf(row, ["longitude","Longitude","lon","Lon","lng","Lng"]);
+      const op   = firstOf(row, ["Operator","operator","Name","name"]);
+      const ctry = firstOf(row, ["country","Country"]);
+      const cont = firstOf(row, ["continent","Continent","Region","region"]);
+      const api  = firstOf(row, ["APIs","apis","API","api"]);
+      const updated = firstOf(row, ["LastUpdated","lastUpdated","Updated","updated","Date","date"]);
+      return {
+        lat: parseFloat(lat),
+        lon: parseFloat(lon),
+        operator: nm(op),
+        country: nm(ctry),
+        continent: nm(cont),
+        apis: nm(api),
+        lastUpdated: nm(updated)
+      };
+    }
+
+  const map = L.map('map', { worldCopyJump:true }).setView([20,0], 2);
+  // Create colored background pane (behind everything)
+  map.createPane('background');
+  map.getPane('background').style.zIndex = 100;
+  // Pane for country polygons (below markers)
+  map.createPane('countries');
+  map.getPane('countries').style.zIndex = 300;
+
+    let lightMap = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+      attribution: '&copy; OpenStreetMap &copy; CARTO',
+      subdomains: 'abcd',
+      maxZoom: 19
+    });
+
+    lightMap.addTo(map);
+
+    // Add colored background overlay for visual enhancement
+    const backgroundOverlay = L.rectangle([[-90, -180], [90, 180]], {
+      color: 'transparent',
+      fillColor: '#f0f8ff',
+      fillOpacity: 0.3,
+      pane: 'background'
+    });
+    backgroundOverlay.addTo(map);
+
+    try {
+      if (L.Control && typeof L.Control.geocoder === 'function'){
+        L.Control.geocoder({
+          defaultMarkGeocode: false,
+          placeholder: "Search Country ...",
+          position: 'topright'
+        })
+        .on('markgeocode', function(e) {
+          map.fitBounds(e.geocode.bbox);
+        })
+        .addTo(map);
+      }
+    } catch {}
+
+  const markersLayer = L.markerClusterGroup({
+      showCoverageOnHover: false,
+      iconCreateFunction: function(cluster){
+        const markers = cluster.getAllChildMarkers();
+    // Composition for donut: counts by apiStatus
+    let countAll = 0, countSome = 0, countNone = 0;
+    for (const m of markers){
+      const s = m.options.apiStatus;
+      if (s === 'all') countAll++; else if (s === 'some') countSome++; else countNone++;
+    }
+    const total = Math.max(1, countAll + countSome + countNone);
+
+    // Priority: red (all) > light red (some) > blue (none)
+    const hasAll  = countAll > 0;
+    const hasSome = !hasAll && countSome > 0;
+    const clusterColor = hasAll ? "#d62728" : (hasSome ? "#ff9999" : "#1f77b4");
+
+    // Donut segment angles
+    const allDeg  = Math.round((countAll  / total) * 360);
+    const someDeg = allDeg + Math.round((countSome / total) * 360);
+
+    // Dark red outline only for light red clusters
+    const clusterBorder = (clusterColor === '#ff9999') ? '2px solid #9f1239' : 'none';
+
+    const count = cluster.getChildCount();
+    const donut = `
+      <div style="position:relative;width:40px;height:40px;border-radius:50%;
+                  background: conic-gradient(#d62728 0deg ${allDeg}deg, #ff9999 ${allDeg}deg ${someDeg}deg, #1f77b4 ${someDeg}deg 360deg);
+                  border:${clusterBorder}; display:flex;align-items:center;justify-content:center;">
+        <div style="position:absolute;width:24px;height:24px;border-radius:50%;background:white;
+                    color:#111;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;">${count}</div>
+      </div>`;
+
+    return L.divIcon({
+      html: donut,
+      className: "custom-cluster",
+      iconSize: [40,40]
+    });
+      }
+    });
+
+    map.addLayer(markersLayer);
+
+    if (map.zoomControl && typeof map.zoomControl.setPosition === 'function'){
+      map.zoomControl.setPosition('topright');
+    }
+
+    let allRows = [];
+    let searchControl = null;
+    let countryOverlay = null;
+    let worldCountriesGeoJSON = null;
+
+    // Normalize country names between GeoJSON and CSV
+    const nameAliases = new Map([
+      ["united states of america", "united states"],
+      ["russian federation", "russia"],
+      ["korea, republic of", "south korea"],
+      ["republic of korea", "south korea"],
+      ["korea, democratic people's republic of", "north korea"],
+      ["democratic people's republic of korea", "north korea"],
+      ["republic of the congo", "congo"],
+      ["democratic republic of the congo", "democratic republic of congo"],
+      ["cote d'ivoire", "ivory coast"],
+      ["côte d’ivoire", "ivory coast"],
+      ["côte d'ivoire", "ivory coast"],
+      ["tanzania, united republic of", "tanzania"],
+  ["united republic of tanzania", "tanzania"],
+      ["iran (islamic republic of)", "iran"],
+      ["viet nam", "vietnam"],
+      ["syrian arab republic", "syria"],
+      ["lao people's democratic republic", "laos"],
+      ["moldova, republic of", "moldova"],
+      ["bolivia (plurinational state of)", "bolivia"],
+      ["venezuela (bolivarian republic of)", "venezuela"],
+      ["palestine, state of", "palestine"],
+      ["macedonia", "north macedonia"],
+      ["swaziland", "eswatini"],
+      ["cabo verde", "cape verde"],
+      ["micronesia, federated states of", "micronesia"],
+      ["east timor", "timor-leste"],
+      ["united kingdom of great britain and northern ireland", "united kingdom"],
+    ]);
+    function normalizeName(n){
+      const base = (n||"").toLowerCase().trim();
+      return nameAliases.get(base) || base;
+    }
+
+    function addSearchControl(){
+      try {
+        if (searchControl) { map.removeControl(searchControl); searchControl = null; }
+        if (L.Control && typeof L.Control.Search === 'function'){
+          searchControl = new L.Control.Search({
+            layer: markersLayer,
+            propertyName: 'title',
+            marker: false,
+            initial: false,
+            moveToLocation: (latlng, title, mapRef)=> mapRef.setView(latlng, 5),
+            position: 'topright'
+          });
+          map.addControl(searchControl);
+        }
+      } catch {}
+    }
+
+  function render(onlyAPI=false){
+      markersLayer.clearLayers();
+      const bounds = [];
+      const apiSelect = document.getElementById('apiFilter');
+      const selectedApi = apiSelect ? apiSelect.value : '__all__';
+  const continentSel = document.getElementById('continentFilter');
+  const selectedCont = continentSel ? continentSel.value : '__all__';
+  
+
+  const normRows = allRows
+        .map(normalizeRow)
+        .filter(r => isFinite(r.lat) && isFinite(r.lon) && nm(r.country));
+
+  const rows = normRows;
+
+      // Build API list for filter
+      const apiSet = new Set();
+      const contSet = new Set();
+  for (const r of rows){
+        const apisStr = nm(r.apis);
+        if (apisStr && !/no camara apis currently announced/i.test(apisStr)){
+          apisStr.split(',').map(s=>s.trim()).filter(Boolean).forEach(t => apiSet.add(t));
+        }
+        if (r.continent) contSet.add(r.continent);
+      }
+  if (apiSelect && apiSelect.options.length <= 1){
+        const apis = Array.from(apiSet).sort((a,b)=> a.localeCompare(b));
+        for (const api of apis){
+          const opt = document.createElement('option');
+          opt.value = api; opt.textContent = api;
+          apiSelect.appendChild(opt);
+        }
+      }
+      if (continentSel && continentSel.options.length <= 1){
+        const continents = Array.from(contSet).sort((a,b)=> a.localeCompare(b));
+        for (const cont of continents){
+          const opt = document.createElement('option');
+          opt.value = cont; opt.textContent = cont;
+          continentSel.appendChild(opt);
+        }
+      }
+
+      const byCountry = new Map();
+      for (const r of rows){
+        if (selectedCont !== '__all__' && r.continent !== selectedCont) continue;
+        // Use normalized country name as the key to merge variants (e.g., "Côte d’Ivoire" vs "Cote d'Ivoire")
+        const key = normalizeName(r.country);
+    if (!byCountry.has(key)){
+          byCountry.set(key, {
+            // Keep the first seen display name
+            country: r.country,
+            continent: r.continent,
+            lat: r.lat,
+            lon: r.lon,
+            operators: new Map(),
+            anyApi: false,
+      coverageScore: 0
+          });
+        }
+        const agg = byCountry.get(key);
+        if (!agg.continent && r.continent) agg.continent = r.continent;
+        const opName = nm(r.operator);
+        if (!opName) continue;
+        if (!agg.operators.has(opName)){
+          agg.operators.set(opName, { apisSet: new Set(), anyApi: false });
+        }
+        const op = agg.operators.get(opName);
+        const apisStr = nm(r.apis);
+        if (apisStr){
+          if (!/no camara apis currently announced/i.test(apisStr)){
+            apisStr.split(',').map(s=>s.trim()).filter(Boolean).forEach(t => op.apisSet.add(t));
+            op.anyApi = true;
+            agg.anyApi = true;
+          }
+        }
+        
+      }
+
+  // Track API countries for polygon shading
+  const apiCountries = new Set();
+
+  let shownCountries = 0;
+      let shownOperators = 0;
+      for (const [, agg] of byCountry){
+        if (selectedCont !== '__all__' && agg.continent !== selectedCont) continue;
+
+        // Determine country color and selected-API coverage
+        const totalOperators = agg.operators.size;
+        const operatorsWithApi = (selectedApi === '__all__')
+          ? Array.from(agg.operators.values()).filter(op => op.anyApi).length
+          : Array.from(agg.operators.values()).filter(op => op.apisSet && op.apisSet.has(selectedApi)).length;
+
+        // Apply 'apiOnly' filter correctly for current API selection
+        if (onlyAPI) {
+          if (selectedApi === '__all__') {
+            if (!agg.anyApi) continue; // any CAMARA API
+          } else {
+            if (operatorsWithApi === 0) continue; // must have selected API
+          }
+        }
+        
+        let color;
+  if (operatorsWithApi === 0) {
+          // No operators have CAMARA APIs - Blue
+          color = "#1f77b4";
+        } else if (operatorsWithApi === totalOperators) {
+          // All operators have CAMARA APIs - Red
+          color = "#d62728";
+        } else {
+          // Some operators have CAMARA APIs - Light red
+          color = "#ff9999";
+        }
+  // coverage score for selected API
+  agg.coverageScore = Math.round((operatorsWithApi / Math.max(1,totalOperators)) * 100);
+    // Use dark red outline only for light red (partial) dots
+  const border = (color === '#ff9999') ? '#9f1239' : '#000';
+    // Graduated dot size by operators count
+    const size = 10 + Math.min(20, totalOperators*2);
+    const icon = L.divIcon({
+          className: "custom-marker",
+          html: `<div style="
+        width:${size}px;height:${size}px;
+              border-radius:50%;
+              background:${color};
+      border:1px solid ${border};">
+              </div>`,
+      iconSize: [size,size]
+        });
+  // Derive apiStatus for cluster coloring: 'all' | 'some' | 'none'
+  const apiStatus = (operatorsWithApi === 0)
+          ? 'none'
+          : (operatorsWithApi === totalOperators ? 'all' : 'some');
+
+  const opsArray = Array.from(agg.operators.entries()).sort((a,b)=> a[0].localeCompare(b[0]));
+        // Build API list for this country
+        const apiUniverse = new Set();
+        for (const [, op] of opsArray){ for (const a of op.apisSet) apiUniverse.add(a); }
+        const apiList = Array.from(apiUniverse).sort((a,b)=> a.localeCompare(b));
+
+        // Table header inside a scrollable container to avoid overflow
+        let matrix = `<div style="overflow:auto; max-height:320px; max-width:min(80vw,560px); border:1px solid #e2e8f0; border-radius:6px;">
+                        <table style="border-collapse:separate; border-spacing:0; font-size:13px; width:max-content; min-width:100%;">
+                        <thead><tr>
+                          <th style="position:sticky; top:0; left:0; z-index:3; background:#f1f5f9; text-align:left; padding:6px 8px; border-bottom:1px solid #e2e8f0; border-right:1px solid #e2e8f0;">Operator</th>`;
+        if (selectedApi === '__all__'){
+          for (const api of apiList){
+            matrix += `<th title="${api}" style="position:sticky; top:0; background:#f1f5f9; padding:6px 8px; border-bottom:1px solid #e2e8f0; white-space:nowrap;">${api}</th>`;
+          }
+        } else {
+          matrix += `<th style="position:sticky; top:0; background:#f1f5f9; padding:6px 8px; border-bottom:1px solid #e2e8f0; white-space:nowrap;">${selectedApi}</th>`;
+        }
+        matrix += `</tr></thead><tbody>`;
+
+        // Rows
+        let rowIndex = 0;
+        for (const [name, op] of opsArray){
+          const rowBg = (rowIndex % 2 === 0) ? '#ffffff' : '#f8fafc';
+          matrix += `<tr><td style="position:sticky; left:0; z-index:2; background:${rowBg}; padding:6px 8px; border-bottom:1px solid #f1f5f9; border-right:1px solid #e2e8f0; font-weight:600;">${name}</td>`;
+          const apisToShow = (selectedApi === '__all__') ? apiList : [selectedApi];
+          for (const api of apisToShow){
+            const has = op.apisSet.has(api);
+            const badge = has
+              ? '<span style="display:inline-flex;align-items:center;gap:6px;background:#dcfce7;color:#166534;border:1px solid #16a34a;border-radius:999px;padding:2px 8px;font-weight:600"><span>✓</span>Yes</span>'
+              : '<span style="display:inline-flex;align-items:center;gap:6px;background:#fee2e2;color:#7f1d1d;border:1px solid #ef4444;border-radius:999px;padding:2px 8px;font-weight:600"><span>✕</span>No</span>';
+            matrix += `<td style="text-align:center; padding:6px 8px; border-bottom:1px solid #f1f5f9; background:${rowBg};">${badge}</td>`;
+          }
+          matrix += `</tr>`;
+          rowIndex++;
+        }
+  matrix += `</tbody></table></div>`;
+        shownOperators += opsArray.length;
+
+  const popupHtml = `
+      <div style="font:13px system-ui, -apple-system, Segoe UI, Roboto, Arial; max-width: 560px;">
+              <div style="font-weight:700; margin-bottom:6px;">${agg.country}</div>
+              <div style="margin-bottom:6px"><b>Continent:</b> ${agg.continent || '-'}</div>
+              <div style="margin-bottom:6px"><b>Total operators:</b> ${opsArray.length}</div>
+      ${matrix}
+            </div>`;
+
+  const m = L.marker([agg.lat, agg.lon], {icon: icon, isAPI: agg.anyApi, apiStatus});
+  // Default label color; labels remain clickable
+  m.bindTooltip(`${agg.country} (${opsArray.length})`, { permanent:true, direction:"right", opacity:0.95, interactive:true });
+  m.bindPopup(popupHtml, { maxWidth: 560, autoPan: true, closeButton: true });
+        const tt = m.getTooltip();
+        if (tt && typeof tt.on === 'function'){
+          tt.on('click', () => m.openPopup());
+        }
+
+        m.options.title = agg.country;
+        markersLayer.addLayer(m);
+        bounds.push([agg.lat, agg.lon]);
+  shownCountries++;
+  if (agg.anyApi) apiCountries.add(normalizeName(agg.country));
+      }
+
+      if (bounds.length){
+        map.fitBounds(L.latLngBounds(bounds).pad(0.2));
+      }
+
+      addSearchControl();
+
+      const c = document.getElementById('count');
+      c.textContent = `Showing ${shownCountries.toLocaleString()} countr${shownCountries===1?'y':'ies'} / ${shownOperators.toLocaleString()} operator${shownOperators===1?'':'s'}`;
+
+      // Update country polygon overlay
+  updateCountryOverlay(apiCountries, byCountry, selectedApi);
+    }
+
+    // Load world GeoJSON once
+    async function loadWorldGeoJSON(){
+      if (worldCountriesGeoJSON) return worldCountriesGeoJSON;
+      try {
+        const url = 'https://raw.githubusercontent.com/johan/world.geo.json/master/countries.geo.json';
+        const res = await fetch(url, { cache: 'force-cache' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        worldCountriesGeoJSON = await res.json();
+      } catch (e){
+        console.warn('Failed to load world countries GeoJSON:', e);
+        worldCountriesGeoJSON = null;
+      }
+      return worldCountriesGeoJSON;
+    }
+
+  async function updateCountryOverlay(apiCountries, byCountry, selectedApi='__all__'){
+      console.log('byCountry size:', byCountry.size);
+      console.log('byCountry entries:', Array.from(byCountry.keys()));
+
+      const data = await loadWorldGeoJSON();
+      if (!data) return;
+
+      if (countryOverlay){
+        map.removeLayer(countryOverlay);
+        countryOverlay = null;
+      }
+
+      function featureKey(feat){
+        const props = (feat && feat.properties) || {};
+        const raw = props.name || props.NAME || props.ADMIN || props.admin || '';
+        return normalizeName(raw);
+      }
+
+      countryOverlay = L.geoJSON(data, {
+        pane: 'countries',
+        style: function(feat){
+          const geoJsonKey = featureKey(feat);
+          // Try to find the country data using different key formats
+          let countryData = null;
+
+          // Prefer direct lookup by normalized key
+          countryData = byCountry.get(geoJsonKey);
+
+          // Fallback: try lowercase (defensive)
+          if (!countryData) {
+            countryData = byCountry.get(geoJsonKey.toLowerCase());
+          }
+
+          // Final fallback: scan values comparing normalized display name
+          if (!countryData) {
+            for (const [, data] of byCountry) {
+              if (normalizeName(data.country) === geoJsonKey) { countryData = data; break; }
+            }
+          }
+
+          if (countryData) {
+            const totalOps = countryData.operators.size;
+            const apiOps = (selectedApi === '__all__')
+              ? Array.from(countryData.operators.values()).filter(op => op.anyApi).length
+              : Array.from(countryData.operators.values()).filter(op => op.apisSet && op.apisSet.has(selectedApi)).length;
+            const coverageScore = Math.round((apiOps / Math.max(1,totalOps)) * 100);
+
+            // Debug: log country matching
+            console.log(`Matched Country: ${countryData.country}, Total ops: ${totalOps}, API ops: ${apiOps}, GeoJSON key: ${geoJsonKey}`);
+
+            if (apiOps === 0) {
+              // No operators have CAMARA APIs - Transparent (no fill), keep a subtle border
+              return {
+                color:'#475569',
+                weight:1,
+                fill:false,
+                fillOpacity:0,
+                opacity: 0.7
+              };
+            } else if (apiOps === totalOps) {
+              // All operators have APIs - Red with enhanced styling
+              return {
+                color:'#b91c1c',
+                weight:2,
+                fillColor:'#d62728',
+                fillOpacity:0.6,
+                opacity: 0.8
+              };
+            } else {
+              // Some operators have APIs - Light red with enhanced styling
+              return {
+                color:'#e11d48',
+                weight:2,
+                fillColor:'#ff9999',
+                fillOpacity:0.5,
+                opacity: 0.8
+              };
+            }
+          }
+
+          // Debug: log unmatched countries
+          console.log(`Unmatched country: ${geoJsonKey}`);
+
+          // Country not found in our data - light gray
+          return {
+            color:'#94a3b8',
+            weight:1,
+            fillColor:'#e2e8f0',
+            fillOpacity:0.3,
+            opacity: 0.6
+          };
+        },
+        onEachFeature: function(feature, layer) {
+          // Add hover effects
+          layer.on({
+            mouseover: function(e) {
+              const layer = e.target;
+              layer.setStyle({
+                weight: 3,
+                fillOpacity: layer.options.fillOpacity + 0.2
+              });
+            },
+            mouseout: function(e) {
+              countryOverlay.resetStyle(e.target);
+            }
+          });
+        }
+      });
+      countryOverlay.addTo(map);
+    }
+
+    const statusPanel = document.createElement('div');
+    statusPanel.className = 'panel';
+    statusPanel.id = 'statusPanel';
+    statusPanel.style.display = 'none';
+    document.querySelector('.ui').appendChild(statusPanel);
+
+    function showStatus(msg, isError=false){
+      statusPanel.textContent = msg;
+      statusPanel.style.display = msg ? 'flex' : 'none';
+      statusPanel.style.border = isError ? '1px solid #e66' : 'none';
+      statusPanel.style.background = isError ? '#ffecec' : '#fff';
+    }
+
+    function loadCSVFromEmbedded(){
+      const s = document.getElementById('embeddedCSV');
+      const txt = s ? s.textContent : '';
+      const content = (txt || '').trim();
+      if (!content) return false;
+
+      function parseCSV(text){
+        const rows = [];
+        let row = [];
+        let field = '';
+        let inQuotes = false;
+        for (let i = 0; i < text.length; i++){
+          const ch = text[i];
+          if (inQuotes){
+            if (ch === '"'){
+              const next = text[i+1];
+              if (next === '"'){ field += '"'; i++; }
+              else { inQuotes = false; }
+            } else {
+              field += ch;
+            }
+          } else {
+            if (ch === '"') inQuotes = true;
+            else if (ch === ','){ row.push(field); field = ''; }
+            else if (ch === '\n'){
+              row.push(field);
+              rows.push(row);
+              row = []; field = '';
+            } else if (ch === '\r'){
+            } else {
+              field += ch;
+            }
+          }
+        }
+        row.push(field);
+        rows.push(row);
+        return rows;
+      }
+
+      try {
+        const rows = parseCSV(content).filter(r => r.some(cell => String(cell).trim() !== ''));
+        if (!rows.length){ showStatus('Embedded CSV is empty.', true); return true; }
+        const headers = rows[0].map(h => String(h).trim());
+        const data = rows.slice(1).map(r => {
+          const obj = {};
+          for (let i = 0; i < headers.length; i++){
+            obj[headers[i]] = (r[i] !== undefined) ? r[i] : '';
+          }
+          return obj;
+        });
+        allRows = data;
+        render(document.getElementById('apiOnly').checked);
+        showStatus('');
+      } catch (err){
+        showStatus(`Embedded CSV parse failed: ${err?.message || err}`, true);
+      }
+      return true;
+    }
+
+    (function(){
+      if (!loadCSVFromEmbedded()){
+        showStatus('');
+      }
+    })();
+
+    // Expand/Collapse left panel
+    const uiEl = document.querySelector('.ui');
+    const toggleBtn = document.getElementById('togglePanel');
+    if (toggleBtn && uiEl){
+      toggleBtn.addEventListener('click', () => {
+        uiEl.classList.toggle('collapsed');
+        const collapsed = uiEl.classList.contains('collapsed');
+        toggleBtn.setAttribute('title', collapsed ? 'Expand panel' : 'Collapse panel');
+        toggleBtn.setAttribute('aria-label', collapsed ? 'Expand panel' : 'Collapse panel');
+        toggleBtn.setAttribute('aria-expanded', (!collapsed).toString());
+      });
+    }
+
+    document.getElementById('apiOnly').addEventListener('change', e=>{
+      render(e.target.checked);
+    });
+
+    const apiFilterEl = document.getElementById('apiFilter');
+    if (apiFilterEl){
+      apiFilterEl.addEventListener('change', () => render(document.getElementById('apiOnly').checked));
+    }
+
+    
+
+    const contEl = document.getElementById('continentFilter');
+    if (contEl){
+      contEl.addEventListener('change', () => render(document.getElementById('apiOnly').checked));
+    }
+
+    
+
+    // Shareable state save/restore
+    function saveState(){
+      const st = new URLSearchParams();
+      st.set('api', document.getElementById('apiFilter')?.value || '__all__');
+      st.set('cont', document.getElementById('continentFilter')?.value || '__all__');
+      st.set('only', document.getElementById('apiOnly')?.checked ? '1' : '0');
+      
+      
+      location.hash = st.toString();
+    }
+  ['apiFilter','continentFilter','apiOnly']
+      .forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', saveState);
+      });
+
+    function restoreState(){
+      if (!location.hash) return;
+      const sp = new URLSearchParams(location.hash.substring(1));
+      const setVal = (id, v) => { const el = document.getElementById(id); if (el && v!=null) el.value = v; };
+      const setChk = (id, v) => { const el = document.getElementById(id); if (el && v!=null) el.checked = (v==='1'); };
+      setVal('apiFilter', sp.get('api'));
+      setVal('continentFilter', sp.get('cont'));
+      setChk('apiOnly', sp.get('only'));
+      
+      
+    }
+
+    restoreState();
+  </script>
+</body>
+</html>

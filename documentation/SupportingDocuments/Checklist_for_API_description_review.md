@@ -3,7 +3,7 @@
 
 | **Section** | **Checkpoints** |
 |---|---|
-| API Description | <ul><li>API targets and functionality is described complete and understandable</li><li>Visual illustrating API functionality and integration is included</li></ul> |
+| API Description | <ul><li>API targets and functionality is described complete and understandable</li><li>Visual illustrating API functionality and integration is included</li><li>In case the API is archived the sentence "This API is archived, not anymore maintained, not anymore part of a meta-release." in bold red font is above the headline with an info icon at the left</li></ul> |
 | Use Cases | <ul><li>Use cases are described understandable</li><li>Use case name in bold, rest in normal font</li></ul> |
 | Benefits | <ul><li>Benefits are described understandable</li><li>Benefit name in bold, rest in normal font</li></ul> |
 | API Portfolio: | <ul><li>Prefix correct "API Portfolio:"</li><li>Correct portfolio is shown</li></ul> |

@@ -12,5 +12,5 @@
 | API Repository: | <ul><li>Prefix correct "API Repository:"</li><li>Link is correct and named with API repository</li></ul> |
 | API Repository Status: | <ul><li>Prefix correct "API Repository Status:"</li><li>Status is correct (Sandbox, Incubating, Graduated)</li></ul> |
 | API Status: | <ul><li>Prefix correct "API Status:"</li><li>Status is correct (Upcoming, In progress, Release candidate, Initial, Stable)</li></ul> |
-| API Version(s) and Release Date(s): | <ul><li>Prefix correct "API Version(s) and Release Date(s):"</li><li>Public release API versions are listed in ascending order (newest at the bottom)</li><li>Format is "vx.y.z (dd.mm.yyyy), Spring25 meta-release"</li><li>Links are correct</li></ul> |
+| API Version(s) and Release Date(s): | <ul><li>Prefix correct "API Version(s) and Release Date(s):"</li><li>Public release API versions are listed in ascending order (newest version number at the bottom)</li><li>Format is "vx.y.z (dd.mm.yyyy), Spring25 meta-release, patch release" (meta release and patch release are optional)</li><li>Links are correct</li></ul> |
 | API availability: | <ul><li>Prefix correct "API availability:"</li><li>"Information which APIs are available in which country and network, and how to get access can be found on the GSMA public launch status page." is added</li><li>Link to GSMA website is correct</li></ul> |
